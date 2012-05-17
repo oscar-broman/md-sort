@@ -23,7 +23,7 @@ stock
 ;
 
 stock SortDeepArray_Entry(array[][], size, &{Float, String, string, _}:cmp1, &{Float, String, string, _}:cmp2, cmp_tag = tagof(cmp1), bool:cmp_string = false, bool:ignorecase = false, E_SORT_ORDER:order = SORT_ASC) {
-	if (cmp_string || cmp_tag == tagof(string:) || cmp_tag == tagof(String:))
+	if (cmp_string)
 		g_sort_cmp_type = 's';
 	else if (cmp_tag == tagof(Float:))
 		g_sort_cmp_type = 'f';
