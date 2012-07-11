@@ -133,4 +133,174 @@ stock ExchangeArraySlots(array[][], slot1, slot2) {
 	#emit LOAD.S.alt  slot2
 	#emit SUB
 	#emit STOR.I
+	
+	return 0;
+}
+
+#define SortArrayUsingComparator(%1,%2) \
+	SortArrayUsingComparator_Entry(sizeof(%1), %1, !"\0\0\0\0" #%2)
+
+#define Comparator:%1(%2) \
+	forward %1(%2); public %1(%2)
+
+enum e_COMPARE_ORDER {
+	ORDER_ASCENDING = -1,
+	ORDER_EQUAL,
+	ORDER_DESCENDING
+};
+
+static stock GetFunctionAddress(const funcname[]) {
+	new idx, address;
+	
+	if (-1 != (idx = funcidx(funcname))) {
+		#emit LCTRL		   1
+		#emit NEG
+		#emit MOVE.alt
+		#emit ADD.C		   32
+		#emit STOR.S.pri   address
+		#emit LREF.S.pri   address
+		#emit ADD
+		#emit LOAD.S.alt   idx
+		#emit SHL.C.alt	   3
+		#emit ADD
+		#emit STOR.S.pri   address
+		#emit LREF.S.pri   address
+		#emit STOR.S.pri   address
+	}
+	
+	return address;
+}
+
+stock SortArrayUsingComparator_Entry(size, ...) {
+	new array, func;
+	
+	#emit LOAD.S.pri  16
+	#emit STOR.S.pri  array
+	#emit LOAD.S.pri  20
+	#emit LOAD.I
+	#emit STOR.S.pri  func
+	
+	if (!func) {
+		#emit LOAD.S.pri  20
+		#emit ADD.C       4
+		#emit PUSH.pri
+		#emit PUSH.C      4
+		#emit LCTRL       6
+		#emit ADD.C       28
+		#emit PUSH.pri
+		#emit CONST.pri   GetFunctionAddress
+		#emit SCTRL       6
+		#emit LOAD.S.alt  20
+		#emit STOR.I
+		#emit STOR.S.pri  func
+	}
+	
+	if (!func) {
+		print(!"(SortArrayUsingComparator) Invalid comparator given.");
+		
+		return;
+	}
+	
+	SortArrayUsingComparator_QS(array, func, 0, size - 1);
+}
+
+stock SortArrayUsingComparator_QS(array, func, left, right) {
+	new
+		left_hold = left,
+		right_hold = right,
+		pivot = left
+	;
+	
+	while (left_hold <= right_hold) {
+		new result;
+		
+		for (;;) {
+			#emit LOAD.S.pri  array
+			#emit LOAD.S.alt  pivot
+			#emit SHL.C.alt   2
+			#emit ADD
+			#emit PUSH.pri
+			#emit LOAD.I
+			#emit POP.alt
+			#emit ADD
+			#emit PUSH.pri
+			
+			#emit LOAD.S.pri  array
+			#emit LOAD.S.alt  left_hold
+			#emit SHL.C.alt   2
+			#emit ADD
+			#emit PUSH.pri
+			#emit LOAD.I
+			#emit POP.alt
+			#emit ADD
+			#emit PUSH.pri
+			
+			#emit PUSH.C      8
+			#emit LCTRL       6
+			#emit ADD.C       28
+			#emit PUSH.pri
+			#emit LOAD.S.pri  func
+			#emit SCTRL       6
+			#emit STOR.S.pri  result
+			
+			if (result < 0) {
+				left_hold++;
+			} else {
+				break;
+			}
+		}
+		
+		for (;;) {
+			#emit LOAD.S.pri  array
+			#emit LOAD.S.alt  pivot
+			#emit SHL.C.alt   2
+			#emit ADD
+			#emit PUSH.pri
+			#emit LOAD.I
+			#emit POP.alt
+			#emit ADD
+			#emit PUSH.pri
+			
+			#emit LOAD.S.pri  array
+			#emit LOAD.S.alt  right_hold
+			#emit SHL.C.alt   2
+			#emit ADD
+			#emit PUSH.pri
+			#emit LOAD.I
+			#emit POP.alt
+			#emit ADD
+			#emit PUSH.pri
+			
+			#emit PUSH.C      8
+			#emit LCTRL       6
+			#emit ADD.C       28
+			#emit PUSH.pri
+			#emit LOAD.S.pri  func
+			#emit SCTRL       6
+			#emit STOR.S.pri  result
+			
+			if (result > 0) {
+				right_hold--;
+			} else {
+				break;
+			}
+		}
+		
+		if (left_hold <= right_hold) {
+			#emit PUSH.S      right_hold
+			#emit PUSH.S      left_hold
+			#emit PUSH.S      array
+			#emit PUSH.C      12
+			#emit LCTRL       6
+			#emit ADD.C       28
+			#emit PUSH.pri
+			#emit CONST.pri   ExchangeArraySlots
+			#emit SCTRL       6
+
+			left_hold++, right_hold--;
+		}
+	}
+	
+	if (left < right_hold) SortArrayUsingComparator_QS(array, func, left, right_hold);
+	if (left_hold < right) SortArrayUsingComparator_QS(array, func, left_hold, right);
 }
