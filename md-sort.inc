@@ -304,3 +304,164 @@ stock SortArrayUsingComparator_QS(array, func, left, right) {
 	if (left < right_hold) SortArrayUsingComparator_QS(array, func, left, right_hold);
 	if (left_hold < right) SortArrayUsingComparator_QS(array, func, left_hold, right);
 }
+
+#define SortArrayUsingComparator_Entry(%1)%2=>%3; \
+	SortArrayUsingCompInto_Entry(%3, %1);
+
+stock SortArrayUsingCompInto_Entry(results[], size, ...) {
+	new array, func;
+	
+	#emit LOAD.S.pri  20
+	#emit STOR.S.pri  array
+	#emit LOAD.S.pri  24
+	#emit LOAD.I
+	#emit STOR.S.pri  func
+	
+	if (!func) {
+		#emit LOAD.S.pri  24
+		#emit ADD.C       4
+		#emit PUSH.pri
+		#emit PUSH.C      4
+		#emit LCTRL       6
+		#emit ADD.C       28
+		#emit PUSH.pri
+		#emit CONST.pri   GetFunctionAddress
+		#emit SCTRL       6
+		#emit LOAD.S.alt  24
+		#emit STOR.I
+		#emit STOR.S.pri  func
+	}
+	
+	if (!func) {
+		print(!"(SortArrayUsingComparator) Invalid comparator given.");
+		
+		return;
+	}
+	
+	for (new i = 0; i < size; i++)
+		results[i] = i;
+	
+	SortArrayUsingCompInto_QS(array, results, func, 0, size - 1);
+}
+
+stock SortArrayUsingCompInto_QS(array, results[], func, left, right) {
+	new
+		left_hold = left,
+		right_hold = right,
+		pivot = left
+	;
+	
+	while (left_hold <= right_hold) {
+		new result;
+		
+		for (;;) {
+			#emit LOAD.S.pri  pivot
+			#emit SHL.C.pri   2  
+			#emit LOAD.S.alt  results
+			#emit ADD
+			#emit LOAD.I
+			#emit MOVE.alt
+			
+			#emit LOAD.S.pri  array
+			#emit SHL.C.alt   2
+			#emit ADD
+			#emit PUSH.pri
+			#emit LOAD.I
+			#emit POP.alt
+			#emit ADD
+			#emit PUSH.pri
+			
+			#emit LOAD.S.pri  left_hold
+			#emit SHL.C.pri   2  
+			#emit LOAD.S.alt  results
+			#emit ADD
+			#emit LOAD.I
+			#emit MOVE.alt
+			
+			#emit LOAD.S.pri  array
+			#emit SHL.C.alt   2
+			#emit ADD
+			#emit PUSH.pri
+			#emit LOAD.I
+			#emit POP.alt
+			#emit ADD
+			#emit PUSH.pri
+			
+			#emit PUSH.C      8
+			#emit LCTRL       6
+			#emit ADD.C       28
+			#emit PUSH.pri
+			#emit LOAD.S.pri  func
+			#emit SCTRL       6
+			#emit STOR.S.pri  result
+			
+			if (result < 0) {
+				left_hold++;
+			} else {
+				break;
+			}
+		}
+		
+		for (;;) {
+			#emit LOAD.S.pri  pivot
+			#emit SHL.C.pri   2  
+			#emit LOAD.S.alt  results
+			#emit ADD
+			#emit LOAD.I
+			#emit MOVE.alt
+			
+			#emit LOAD.S.pri  array
+			#emit SHL.C.alt   2
+			#emit ADD
+			#emit PUSH.pri
+			#emit LOAD.I
+			#emit POP.alt
+			#emit ADD
+			#emit PUSH.pri
+			
+			#emit LOAD.S.pri  right_hold
+			#emit SHL.C.pri   2  
+			#emit LOAD.S.alt  results
+			#emit ADD
+			#emit LOAD.I
+			#emit MOVE.alt
+			
+			
+			#emit LOAD.S.pri  array
+			#emit SHL.C.alt   2
+			#emit ADD
+			#emit PUSH.pri
+			#emit LOAD.I
+			#emit POP.alt
+			#emit ADD
+			#emit PUSH.pri
+			
+			#emit PUSH.C      8
+			#emit LCTRL       6
+			#emit ADD.C       28
+			#emit PUSH.pri
+			#emit LOAD.S.pri  func
+			#emit SCTRL       6
+			#emit STOR.S.pri  result
+			
+			if (result > 0) {
+				right_hold--;
+			} else {
+				break;
+			}
+		}
+		
+		if (left_hold <= right_hold) {
+			// used instead of creating another variable
+			result = results[right_hold];
+			
+			results[right_hold] = results[left_hold];
+			results[left_hold] = result;
+			
+			left_hold++, right_hold--;
+		}
+	}
+	
+	if (left < right_hold) SortArrayUsingCompInto_QS(array, results, func, left, right_hold);
+	if (left_hold < right) SortArrayUsingCompInto_QS(array, results, func, left_hold, right);
+}
