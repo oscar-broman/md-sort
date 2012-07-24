@@ -308,14 +308,21 @@ stock SortArrayUsingComparator_QS(array, func, left, right) {
 #define SortArrayUsingComparator_Entry(%1)%2=>%3; \
 	SortArrayUsingCompInto_Entry(%3, %1);
 
+enum (<<= 1) {
+	SORT_IS_PLAYERS = 1
+};
+
 stock SortArrayUsingCompInto_Entry(results[], size, ...) {
-	new array, func;
+	new array, func, flags;
 	
 	#emit LOAD.S.pri  20
 	#emit STOR.S.pri  array
 	#emit LOAD.S.pri  24
 	#emit LOAD.I
 	#emit STOR.S.pri  func
+	
+	if (numargs() > 4)
+		flags = getarg(4);
 	
 	if (!func) {
 		#emit LOAD.S.pri  24
@@ -338,10 +345,35 @@ stock SortArrayUsingCompInto_Entry(results[], size, ...) {
 		return;
 	}
 	
-	for (new i = 0; i < size; i++)
-		results[i] = i;
+	if (flags & SORT_IS_PLAYERS) {
+		new connected = 0;
+		
+		// Start filling the result array with connected players
+		for (new i = 0; i < size; i++) {
+			if (IsPlayerConnected(i))
+				results[connected++] = i;
+		}
+		
+		// Fill the remaining slots with INVALID_PLAYER_ID
+		for (new i = connected; i < size; i++)
+			results[i] = -1;
+		
+		// Store the original size in the flags
+		flags |= size << 16;
+		
+		// Set the size so only the connected players will be sorted
+		size = connected;
+	} else {
+		for (new i = 0; i < size; i++)
+			results[i] = i;
+	}
 	
 	SortArrayUsingCompInto_QS(array, results, func, 0, size - 1);
+	
+	if (flags & SORT_IS_PLAYERS) {
+		if (size < flags >>> 16 && results[size] == -1)
+			results[size] = INVALID_PLAYER_ID;
+	}
 }
 
 stock SortArrayUsingCompInto_QS(array, results[], func, left, right) {
@@ -355,45 +387,61 @@ stock SortArrayUsingCompInto_QS(array, results[], func, left, right) {
 		new result;
 		
 		for (;;) {
-			#emit LOAD.S.pri  pivot
-			#emit SHL.C.pri   2  
-			#emit LOAD.S.alt  results
-			#emit ADD
-			#emit LOAD.I
-			#emit MOVE.alt
-			
-			#emit LOAD.S.pri  array
-			#emit SHL.C.alt   2
-			#emit ADD
-			#emit PUSH.pri
-			#emit LOAD.I
-			#emit POP.alt
-			#emit ADD
-			#emit PUSH.pri
-			
-			#emit LOAD.S.pri  left_hold
-			#emit SHL.C.pri   2  
-			#emit LOAD.S.alt  results
-			#emit ADD
-			#emit LOAD.I
-			#emit MOVE.alt
-			
-			#emit LOAD.S.pri  array
-			#emit SHL.C.alt   2
-			#emit ADD
-			#emit PUSH.pri
-			#emit LOAD.I
-			#emit POP.alt
-			#emit ADD
-			#emit PUSH.pri
-			
-			#emit PUSH.C      8
-			#emit LCTRL       6
-			#emit ADD.C       28
-			#emit PUSH.pri
-			#emit LOAD.S.pri  func
-			#emit SCTRL       6
-			#emit STOR.S.pri  result
+			if (results[pivot] == -1 && results[left_hold] == -1) {
+				result = 0;
+			} else if (results[pivot] == -1) {
+				result = -1;
+			} else if (results[left_hold] == -1) {
+				result = 1;
+			} else {
+				// Load results[pivot]
+				#emit LOAD.S.pri  pivot
+				#emit SHL.C.pri   2  
+				#emit LOAD.S.alt  results
+				#emit ADD
+				#emit LOAD.I
+				#emit MOVE.alt
+				
+				// Push array[results[pivot]]
+				#emit LOAD.S.pri  array
+				#emit SHL.C.alt   2
+				#emit ADD
+				#emit PUSH.pri
+				#emit LOAD.I
+				#emit POP.alt
+				#emit ADD
+				#emit PUSH.pri
+				
+				// Load results[left_hold]
+				#emit LOAD.S.pri  left_hold
+				#emit SHL.C.pri   2  
+				#emit LOAD.S.alt  results
+				#emit ADD
+				#emit LOAD.I
+				#emit MOVE.alt
+				
+				// Push array[results[left_hold]]
+				#emit LOAD.S.pri  array
+				#emit SHL.C.alt   2
+				#emit ADD
+				#emit PUSH.pri
+				#emit LOAD.I
+				#emit POP.alt
+				#emit ADD
+				#emit PUSH.pri
+				
+				// Push arg. count
+				#emit PUSH.C      8
+				// Push return address
+				#emit LCTRL       6
+				#emit ADD.C       28
+				#emit PUSH.pri
+				// Call the comparator
+				#emit LOAD.S.pri  func
+				#emit SCTRL       6
+				// Store the return
+				#emit STOR.S.pri  result
+			}
 			
 			if (result < 0) {
 				left_hold++;
@@ -403,46 +451,61 @@ stock SortArrayUsingCompInto_QS(array, results[], func, left, right) {
 		}
 		
 		for (;;) {
-			#emit LOAD.S.pri  pivot
-			#emit SHL.C.pri   2  
-			#emit LOAD.S.alt  results
-			#emit ADD
-			#emit LOAD.I
-			#emit MOVE.alt
+			if (results[pivot] == -1 && results[right_hold] == -1) {
+				result = 0;
+			} else if (results[pivot] == -1) {
+				result = -1;
+			} else if (results[right_hold] == -1) {
+				result = 1;
+			} else {
+				// Load results[pivot]
+				#emit LOAD.S.pri  pivot
+				#emit SHL.C.pri   2  
+				#emit LOAD.S.alt  results
+				#emit ADD
+				#emit LOAD.I
+				#emit MOVE.alt
+				
+				// Push array[results[pivot]]
+				#emit LOAD.S.pri  array
+				#emit SHL.C.alt   2
+				#emit ADD
+				#emit PUSH.pri
+				#emit LOAD.I
+				#emit POP.alt
+				#emit ADD
+				#emit PUSH.pri
 			
-			#emit LOAD.S.pri  array
-			#emit SHL.C.alt   2
-			#emit ADD
-			#emit PUSH.pri
-			#emit LOAD.I
-			#emit POP.alt
-			#emit ADD
-			#emit PUSH.pri
+				// Load results[right_hold]
+				#emit LOAD.S.pri  right_hold
+				#emit SHL.C.pri   2  
+				#emit LOAD.S.alt  results
+				#emit ADD
+				#emit LOAD.I
+				#emit MOVE.alt
 			
-			#emit LOAD.S.pri  right_hold
-			#emit SHL.C.pri   2  
-			#emit LOAD.S.alt  results
-			#emit ADD
-			#emit LOAD.I
-			#emit MOVE.alt
+				// Push array[results[right_hold]]
+				#emit LOAD.S.pri  array
+				#emit SHL.C.alt   2
+				#emit ADD
+				#emit PUSH.pri
+				#emit LOAD.I
+				#emit POP.alt
+				#emit ADD
+				#emit PUSH.pri
 			
-			
-			#emit LOAD.S.pri  array
-			#emit SHL.C.alt   2
-			#emit ADD
-			#emit PUSH.pri
-			#emit LOAD.I
-			#emit POP.alt
-			#emit ADD
-			#emit PUSH.pri
-			
-			#emit PUSH.C      8
-			#emit LCTRL       6
-			#emit ADD.C       28
-			#emit PUSH.pri
-			#emit LOAD.S.pri  func
-			#emit SCTRL       6
-			#emit STOR.S.pri  result
+				// Push arg. count
+				#emit PUSH.C      8
+				// Push return address
+				#emit LCTRL       6
+				#emit ADD.C       28
+				#emit PUSH.pri
+				// Call the comparator
+				#emit LOAD.S.pri  func
+				#emit SCTRL       6
+				// Store the return
+				#emit STOR.S.pri  result
+			}
 			
 			if (result > 0) {
 				right_hold--;
