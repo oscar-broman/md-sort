@@ -4,25 +4,6 @@
 
 #include <a_samp>
 
-// #define SortDeepArray(%1) (_:SA_0:SA_1:SA_2:SA_3:SortDeepArray_Entry(%1)) 
-// #define SA_0:SA_1:SA_2:SA_3:SortDeepArray_Entry(%1,%2,%3) SA_2:SA_3:SortDeepArray_Entry(%1, sizeof(%1), %1[0][%2], %1[0][(%2) - (%2)], %3)
-// #define SA_1:SA_2:SA_3:SortDeepArray_Entry(%1,%2) SA_2:SA_3:SortDeepArray_Entry(%1, sizeof(%1), %1[0][%2], %1[0][(%2) - (%2)], _)
-// #define SA_2:SA_3:SortDeepArray_Entry(%1,%2,%3[0][%4string%5:%6],%7,%8) SortDeepArray_Entry(%1,%2,%3[0][%6],%3[0][(%6) - (%6)],%8,.cmp_string=true)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #define SA_4%9.%0, SA_4%0,
 
