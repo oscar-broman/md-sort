@@ -4,10 +4,22 @@
 
 #include <a_samp>
 
+
+#define SA_4%9.%0, SA_4%0,
+
+#define SA_4size=%0,%9|||%5,%1,%2,%3,%4,%7)       SA_4%9|||%0,%1,%2,%3,%4,%7)
+#define SA_4cmp_tag=%0,%9|||%5,%1,%2,%3,%4,%7)    SA_4%9|||%5,%0,%2,%3,%4,%7)
+#define SA_4cmp_string=%0,%9|||%5,%1,%2,%3,%4,%7) SA_4%9|||%5,%1,%0,%3,%4,%7)
+#define SA_4ignorecase=%0,%9|||%5,%1,%2,%3,%4,%7) SA_4%9|||%5,%1,%2,%0,%4,%7)
+#define SA_4order=%0,%9|||%5,%1,%2,%3,%4,%7)      SA_4%9|||%5,%1,%2,%3,%0,%7)
+
+#define SA_4_|||
+#define SA_5:$$$
+
 #define SortDeepArray(%1) (_:SA_0:SA_1:SA_2:SA_3:SortDeepArray_Entry(%1)) 
-#define SA_0:SA_1:SA_2:SA_3:SortDeepArray_Entry(%1,%2,%3) SA_2:SA_3:SortDeepArray_Entry(%1, sizeof(%1), %1[0][%2], %1[0][(%2) - (%2)], %3)
-#define SA_1:SA_2:SA_3:SortDeepArray_Entry(%1,%2) SA_2:SA_3:SortDeepArray_Entry(%1, sizeof(%1), %1[0][%2], %1[0][(%2) - (%2)], _)
-#define SA_2:SA_3:SortDeepArray_Entry(%1,%2,%3[0][%4string%5:%6],%7,%8) SortDeepArray_Entry(%1,%2,%3[0][%6],%3[0][(%6) - (%6)],%8,.cmp_string=true)
+#define SA_0:SA_1:SA_2:SA_3:SortDeepArray_Entry(%1,%2,%3) SA_2:SA_3:SortDeepArray_Entry(%1[0][%2], _:%1[0][(%2) - (%2)], SA_4%3,_|||sizeof(%1),_,bool:SA_5:$$$false,_,_,g_sort_cmp_array,%1)
+#define SA_1:SA_2:SA_3:SortDeepArray_Entry(%1,%2) SA_2:SA_3:SortDeepArray_Entry(%1[0][%2], _:%1[0][(%2) - (%2)], sizeof(%1), _, _, _, _, g_sort_cmp_array, %1)
+#define SA_2:SA_3:SortDeepArray_Entry(%3[0][%4string%5:%6],%7,%8$$$false%9) SortDeepArray_Entry(%3[0][%6], _:%3[0][(%6) - (%6)], %8$$$true%9)
 
 enum E_SORT_ORDER {
 	SORT_ASC,
@@ -16,13 +28,14 @@ enum E_SORT_ORDER {
 
 // Use global variables to be nicer to the stack
 stock
+	             g_sort_cmp_array[1][1],
 	             g_sort_cmp_offset,
 	             g_sort_cmp_type,
 	E_SORT_ORDER:g_sort_order,
 	        bool:g_sort_ignorecase
 ;
 
-stock SortDeepArray_Entry(array[][], size, &{Float, String, string, _}:cmp1, &{Float, String, string, _}:cmp2, cmp_tag = tagof(cmp1), bool:cmp_string = false, bool:ignorecase = false, E_SORT_ORDER:order = SORT_ASC) {
+stock SortDeepArray_Entry(&{Float, String, string, _}:cmp1, &_:cmp2, size, cmp_tag = tagof(cmp1), bool:cmp_string = false, bool:ignorecase = false, E_SORT_ORDER:order = SORT_ASC, array[][], ...) {
 	if (cmp_string)
 		g_sort_cmp_type = 's';
 	else if (cmp_tag == tagof(Float:))
@@ -39,7 +52,11 @@ stock SortDeepArray_Entry(array[][], size, &{Float, String, string, _}:cmp1, &{F
 	#emit SHR.C.pri   2
 	#emit STOR.pri    g_sort_cmp_offset
 	
-	_SortDeepArray(array, 0, size -  1);
+	// Copy the array.
+	#emit LOAD.S.pri 44
+	#emit STOR.S.pri 40
+	
+	_SortDeepArray(array, 0, size - 1);
 }
 
 stock _SortDeepArray(array[][], left, right) {
@@ -528,3 +545,4 @@ stock SortArrayUsingCompInto_QS(array, results[], func, left, right) {
 	if (left < right_hold) SortArrayUsingCompInto_QS(array, results, func, left, right_hold);
 	if (left_hold < right) SortArrayUsingCompInto_QS(array, results, func, left_hold, right);
 }
+
