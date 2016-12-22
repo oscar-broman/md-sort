@@ -208,7 +208,8 @@ stock SortArrayUsingComparator_Entry(size, ...) {
 		#emit PUSH.pri
 		#emit PUSH.C      4
 		#emit LCTRL       6
-		#emit ADD.C       28
+		#emit ADD.C       36
+		#emit LCTRL       8
 		#emit PUSH.pri
 		#emit CONST.pri   GetFunctionAddress
 		#emit SCTRL       6
@@ -259,7 +260,8 @@ stock SortArrayUsingComparator_QS(array, func, left, right) {
 			
 			#emit PUSH.C      8
 			#emit LCTRL       6
-			#emit ADD.C       28
+			#emit ADD.C       36
+			#emit LCTRL       8
 			#emit PUSH.pri
 			#emit LOAD.S.pri  func
 			#emit SCTRL       6
@@ -295,7 +297,8 @@ stock SortArrayUsingComparator_QS(array, func, left, right) {
 			
 			#emit PUSH.C      8
 			#emit LCTRL       6
-			#emit ADD.C       28
+			#emit ADD.C       36
+			#emit LCTRL       8
 			#emit PUSH.pri
 			#emit LOAD.S.pri  func
 			#emit SCTRL       6
@@ -314,7 +317,8 @@ stock SortArrayUsingComparator_QS(array, func, left, right) {
 			#emit PUSH.S      array
 			#emit PUSH.C      12
 			#emit LCTRL       6
-			#emit ADD.C       28
+			#emit ADD.C       36
+			#emit LCTRL       8
 			#emit PUSH.pri
 			#emit CONST.pri   ExchangeArraySlots
 			#emit SCTRL       6
@@ -352,7 +356,8 @@ stock SortArrayUsingCompInto_Entry(results[], size, ...) {
 		#emit PUSH.pri
 		#emit PUSH.C      4
 		#emit LCTRL       6
-		#emit ADD.C       28
+		#emit ADD.C       36
+		#emit LCTRL       8
 		#emit PUSH.pri
 		#emit CONST.pri   GetFunctionAddress
 		#emit SCTRL       6
@@ -456,7 +461,8 @@ stock SortArrayUsingCompInto_QS(array, results[], func, left, right) {
 				#emit PUSH.C      8
 				// Push return address
 				#emit LCTRL       6
-				#emit ADD.C       28
+				#emit ADD.C       36
+				#emit LCTRL       8
 				#emit PUSH.pri
 				// Call the comparator
 				#emit LOAD.S.pri  func
@@ -520,7 +526,8 @@ stock SortArrayUsingCompInto_QS(array, results[], func, left, right) {
 				#emit PUSH.C      8
 				// Push return address
 				#emit LCTRL       6
-				#emit ADD.C       28
+				#emit ADD.C       36
+				#emit LCTRL       8
 				#emit PUSH.pri
 				// Call the comparator
 				#emit LOAD.S.pri  func
