@@ -4,7 +4,6 @@
 
 #include <a_samp>
 
-
 #define SA_4%9.%0, SA_4%0,
 
 #define SA_4size=%0,%9|||%5,%1,%2,%3,%4,%7)       SA_4%9|||%0,%1,%2,%3,%4,%7)
@@ -17,8 +16,8 @@
 #define SA_5:$$$
 
 #define SortDeepArray(%1) (_:SA_0:SA_1:SA_2:SA_3:SortDeepArray_Entry(%1)) 
-#define SA_0:SA_1:SA_2:SA_3:SortDeepArray_Entry(%1,%2,%3) SA_2:SA_3:SortDeepArray_Entry(%1[0][%2], _:%1[0][(%2) - (%2)], SA_4%3,_|||sizeof(%1),_,bool:SA_5:$$$false,_,_,g_sort_cmp_array,%1)
-#define SA_1:SA_2:SA_3:SortDeepArray_Entry(%1,%2) SA_2:SA_3:SortDeepArray_Entry(%1[0][%2], _:%1[0][(%2) - (%2)], sizeof(%1), _, _, _, _, g_sort_cmp_array, %1)
+#define SA_0:SA_1:SA_2:SA_3:SortDeepArray_Entry(%1,%2,%3) SA_2:SA_3:SortDeepArray_Entry(%1[0][%2], _:%1[0][(%2) - (%2)], SA_4%3,_|||sizeof(%1),_,bool:SA_5:$$$false,_,_,g_sort_cmp_array,_:%1)
+#define SA_1:SA_2:SA_3:SortDeepArray_Entry(%1,%2) SA_2:SA_3:SortDeepArray_Entry(%1[0][%2], _:%1[0][(%2) - (%2)], sizeof(%1), _, _, _, _, g_sort_cmp_array, _:%1)
 #define SA_2:SA_3:SortDeepArray_Entry(%3[0][%4string%5:%6],%7,%8$$$false%9) SortDeepArray_Entry(%3[0][%6], _:%3[0][(%6) - (%6)], %8$$$true%9)
 
 enum E_SORT_ORDER {
@@ -38,7 +37,7 @@ stock
 stock SortDeepArray_Entry(&{Float, String, string, _}:cmp1, &_:cmp2, size, cmp_tag = tagof(cmp1), bool:cmp_string = false, bool:ignorecase = false, E_SORT_ORDER:order = SORT_ASC, array[][], ...) {
 	if (cmp_string)
 		g_sort_cmp_type = 's';
-	else if (cmp_tag == tagof(Float:))
+	else if (cmp_tag == (tagof (Float:)))
 		g_sort_cmp_type = 'f';
 	else
 		g_sort_cmp_type = 'i';
@@ -67,12 +66,18 @@ stock _SortDeepArray(array[][], left, right) {
 		pivot = array[pivot_idx][g_sort_cmp_offset]
 	;
 	
-	while (left_hold <= right_hold) {
+	if (g_sort_cmp_type == 'f' && Float:pivot != Float:pivot) {
+		// Pivot is NaN, put everything else before it - NaN ALWAYS goes at the
+		// end of the array, regardless of sort order.
+		left_hold = right;
+		right_hold = right - 1;
+		ExchangeArraySlots(array, pivot_idx, right);
+	} else while (left_hold <= right_hold) {
 		switch (g_sort_cmp_type) {
 			case 'f': {
 				if (g_sort_order == SORT_ASC) {
-					while (Float:array[left_hold][g_sort_cmp_offset] < Float:pivot) left_hold++;
-					while (Float:array[right_hold][g_sort_cmp_offset] > Float:pivot) right_hold--;
+					while (Float:pivot > Float:array[left_hold][g_sort_cmp_offset]) left_hold++;
+					while (Float:pivot < Float:array[right_hold][g_sort_cmp_offset]) right_hold--;
 				} else {
 					while (Float:array[left_hold][g_sort_cmp_offset] > Float:pivot) left_hold++;
 					while (Float:array[right_hold][g_sort_cmp_offset] < Float:pivot) right_hold--;
