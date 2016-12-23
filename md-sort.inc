@@ -2,6 +2,11 @@
 //
 // SortDeepArray(array[][], sort_index, .order = SORT_ASC, .ignorecase = false)
 
+#if defined _INC_md_sort
+	#endinput
+#endif
+#define _INC_md_sort
+
 #include <a_samp>
 
 #define SA_4%9.%0, SA_4%0,
@@ -157,6 +162,73 @@ stock ExchangeArraySlots(array[][], slot1, slot2) {
 	#emit STOR.I
 	
 	return 0;
+}
+
+#define ShuffleDeepArray(%0) ShuffleDeepArray_Entry(_:%0, sizeof(%0), sizeof (%0[]))
+
+stock ShuffleDeepArray_Entry(...) {
+	assert(numargs() == 3);
+	new
+		i,
+		base,
+		size = getarg(1),
+		target;
+	#emit LOAD.S.alt 12
+	#emit STOR.S.alt base
+	#emit LOAD.S.pri size
+	#emit SHL.C.pri  2
+	#emit ADD
+	#emit STOR.S.pri i
+	while (i != base) {
+		i -= 4;
+		target = (random(size) << 2) + base;
+		// Get the first slot.
+		#emit LREF.S.pri i
+		#emit LOAD.S.alt i
+		#emit ADD
+		#emit PUSH.pri
+		// Get any other slot.
+		#emit LREF.S.pri target
+		#emit LOAD.S.alt target
+		#emit ADD
+		// Save one.
+		#emit LOAD.S.alt i
+		#emit SUB
+		#emit SREF.S.pri i
+		// Save the other
+		#emit POP.pri
+		#emit LOAD.S.alt target
+		#emit SUB
+		#emit SREF.S.pri target
+	}
+}
+
+#define ResetDeepArray(%0) ResetDeepArray_Entry(_:%0, sizeof(%0), sizeof (%0[]))
+
+stock ResetDeepArray_Entry(...) {
+	// Put all the slots back how they should be originally.
+	assert(numargs() == 3);
+	new
+		i,
+		base,
+		size = getarg(1),
+		target;
+	#emit LOAD.S.alt 12
+	#emit STOR.S.alt i
+	#emit LOAD.S.pri size
+	#emit SHL.C.pri  2
+	#emit ADD
+	#emit STOR.S.pri base
+	#emit STOR.S.pri target
+	size = getarg(2) << 2;
+	while (i != base) {
+		#emit LOAD.S.alt i
+		#emit LOAD.S.pri target
+		#emit SUB
+		#emit STOR.I
+		i += 4;
+		target += size;
+	}
 }
 
 #define SortArrayUsingComparator(%1,%2) \
