@@ -129,9 +129,9 @@ main()
 		array[i][VALUE_FIELD] = random(200);
 	}
 	SortArrayUsingComparator(array, MyComparator) => indexes;
-	for (new i = 0; i != sizeof (target); ++i)
+	for (new i = 0; i != sizeof (indexes); ++i)
 	{
-		printf("%s: %d", (array[target[i]][ORDER_FIELD] == SORT_ASC) ? ("UP") : ("DN"), array[target[i]][VALUE_FIELD]);
+		printf("%s: %d", (array[indexes[i]][ORDER_FIELD] == SORT_ASC) ? ("UP") : ("DN"), array[indexes[i]][VALUE_FIELD]);
 	}
 }
 ```
