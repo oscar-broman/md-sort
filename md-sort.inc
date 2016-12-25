@@ -122,14 +122,12 @@ _SortDeepArray_recurse:
 		}
 	}
 	
-	if (left < right_hold){
+	if (left_hold < right) {
 		g_sort_stack[sp++] = left_hold;
 		g_sort_stack[sp++] = right;
-		right = right_hold;
-		goto _SortDeepArray_recurse;
 	}
-	if (left_hold < right) {
-		left = left_hold;
+	if (left < right_hold){
+		right = right_hold;
 		goto _SortDeepArray_recurse;
 	}
 	if (sp) {
@@ -420,14 +418,12 @@ _SortDeepArray_recurse:
 		}
 	}
 	
-	if (left < right_hold){
+	if (left_hold < right) {
 		g_sort_stack[sp++] = left_hold;
 		g_sort_stack[sp++] = right;
-		right = right_hold;
-		goto _SortDeepArray_recurse;
 	}
-	if (left_hold < right) {
-		left = left_hold;
+	if (left < right_hold){
+		right = right_hold;
 		goto _SortDeepArray_recurse;
 	}
 	if (sp) {
@@ -663,14 +659,12 @@ _SortDeepArray_recurse:
 		}
 	}
 	
-	if (left < right_hold){
+	if (left_hold < right) {
 		g_sort_stack[sp++] = left_hold;
 		g_sort_stack[sp++] = right;
-		right = right_hold;
-		goto _SortDeepArray_recurse;
 	}
-	if (left_hold < right) {
-		left = left_hold;
+	if (left < right_hold){
+		right = right_hold;
 		goto _SortDeepArray_recurse;
 	}
 	if (sp) {
