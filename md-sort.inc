@@ -32,6 +32,7 @@ enum E_SORT_ORDER {
 
 // Use global variables to be nicer to the stack
 stock
+	             g_sort_stack[256],
 	             g_sort_cmp_array[1][1],
 	             g_sort_cmp_offset,
 	             g_sort_cmp_type,
@@ -65,8 +66,6 @@ stock SortDeepArray_Entry(&{Float, String, string, _}:cmp1, &_:cmp2, size, cmp_t
 
 stock _SortDeepArray(array[][], left, right) {
 	
-	static
-		stack[256];
 	new
 		sp;
 _SortDeepArray_recurse:
@@ -124,8 +123,8 @@ _SortDeepArray_recurse:
 	}
 	
 	if (left < right_hold){
-		stack[sp++] = left_hold;
-		stack[sp++] = right;
+		g_sort_stack[sp++] = left_hold;
+		g_sort_stack[sp++] = right;
 		right = right_hold;
 		goto _SortDeepArray_recurse;
 	}
@@ -134,8 +133,8 @@ _SortDeepArray_recurse:
 		goto _SortDeepArray_recurse;
 	}
 	if (sp) {
-		right = stack[--sp];
-		left = stack[--sp];
+		right = g_sort_stack[--sp];
+		left = g_sort_stack[--sp];
 		goto _SortDeepArray_recurse;
 	}
 }
@@ -319,8 +318,6 @@ stock SortArrayUsingComparator_Entry(size, ...) {
 }
 
 stock SortArrayUsingComparator_QS(array, func, left, right) {
-	static
-		stack[256];
 	new
 		sp;
 _SortDeepArray_recurse:
@@ -424,8 +421,8 @@ _SortDeepArray_recurse:
 	}
 	
 	if (left < right_hold){
-		stack[sp++] = left_hold;
-		stack[sp++] = right;
+		g_sort_stack[sp++] = left_hold;
+		g_sort_stack[sp++] = right;
 		right = right_hold;
 		goto _SortDeepArray_recurse;
 	}
@@ -434,8 +431,8 @@ _SortDeepArray_recurse:
 		goto _SortDeepArray_recurse;
 	}
 	if (sp) {
-		right = stack[--sp];
-		left = stack[--sp];
+		right = g_sort_stack[--sp];
+		left = g_sort_stack[--sp];
 		goto _SortDeepArray_recurse;
 	}
 }
@@ -513,8 +510,6 @@ stock SortArrayUsingCompInto_Entry(results[], size, ...) {
 }
 
 stock SortArrayUsingCompInto_QS(array, results[], func, left, right) {
-	static
-		stack[256];
 	new
 		sp;
 _SortDeepArray_recurse:
@@ -669,8 +664,8 @@ _SortDeepArray_recurse:
 	}
 	
 	if (left < right_hold){
-		stack[sp++] = left_hold;
-		stack[sp++] = right;
+		g_sort_stack[sp++] = left_hold;
+		g_sort_stack[sp++] = right;
 		right = right_hold;
 		goto _SortDeepArray_recurse;
 	}
@@ -679,8 +674,8 @@ _SortDeepArray_recurse:
 		goto _SortDeepArray_recurse;
 	}
 	if (sp) {
-		right = stack[--sp];
-		left = stack[--sp];
+		right = g_sort_stack[--sp];
+		left = g_sort_stack[--sp];
 		goto _SortDeepArray_recurse;
 	}
 }
