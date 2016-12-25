@@ -319,6 +319,11 @@ stock SortArrayUsingComparator_Entry(size, ...) {
 }
 
 stock SortArrayUsingComparator_QS(array, func, left, right) {
+	static
+		stack[256];
+	new
+		sp;
+_SortDeepArray_recurse:
 	new
 		left_hold = left,
 		right_hold = right,
@@ -418,8 +423,21 @@ stock SortArrayUsingComparator_QS(array, func, left, right) {
 		}
 	}
 	
-	if (left < right_hold) SortArrayUsingComparator_QS(array, func, left, right_hold);
-	if (left_hold < right) SortArrayUsingComparator_QS(array, func, left_hold, right);
+	if (left < right_hold){
+		stack[sp++] = left_hold;
+		stack[sp++] = right;
+		right = right_hold;
+		goto _SortDeepArray_recurse;
+	}
+	if (left_hold < right) {
+		left = left_hold;
+		goto _SortDeepArray_recurse;
+	}
+	if (sp) {
+		right = stack[--sp];
+		left = stack[--sp];
+		goto _SortDeepArray_recurse;
+	}
 }
 
 #define SortArrayUsingComparator_Entry(%1)%2=>%3; \
@@ -495,6 +513,11 @@ stock SortArrayUsingCompInto_Entry(results[], size, ...) {
 }
 
 stock SortArrayUsingCompInto_QS(array, results[], func, left, right) {
+	static
+		stack[256];
+	new
+		sp;
+_SortDeepArray_recurse:
 	new
 		left_hold = left,
 		right_hold = right,
@@ -645,7 +668,20 @@ stock SortArrayUsingCompInto_QS(array, results[], func, left, right) {
 		}
 	}
 	
-	if (left < right_hold) SortArrayUsingCompInto_QS(array, results, func, left, right_hold);
-	if (left_hold < right) SortArrayUsingCompInto_QS(array, results, func, left_hold, right);
+	if (left < right_hold){
+		stack[sp++] = left_hold;
+		stack[sp++] = right;
+		right = right_hold;
+		goto _SortDeepArray_recurse;
+	}
+	if (left_hold < right) {
+		left = left_hold;
+		goto _SortDeepArray_recurse;
+	}
+	if (sp) {
+		right = stack[--sp];
+		left = stack[--sp];
+		goto _SortDeepArray_recurse;
+	}
 }
 
