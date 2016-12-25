@@ -64,6 +64,12 @@ stock SortDeepArray_Entry(&{Float, String, string, _}:cmp1, &_:cmp2, size, cmp_t
 }
 
 stock _SortDeepArray(array[][], left, right) {
+	
+	static
+		stack[256];
+	new
+		sp;
+_SortDeepArray_recurse:
 	new
 		left_hold = left,
 		right_hold = right,
@@ -117,8 +123,21 @@ stock _SortDeepArray(array[][], left, right) {
 		}
 	}
 	
-	if (left < right_hold) _SortDeepArray(array, left, right_hold);
-	if (left_hold < right) _SortDeepArray(array, left_hold, right);
+	if (left < right_hold){
+		stack[sp++] = left_hold;
+		stack[sp++] = right;
+		right = right_hold;
+		goto _SortDeepArray_recurse;
+	}
+	if (left_hold < right) {
+		left = left_hold;
+		goto _SortDeepArray_recurse;
+	}
+	if (sp) {
+		right = stack[--sp];
+		left = stack[--sp];
+		goto _SortDeepArray_recurse;
+	}
 }
 
 stock ExchangeArraySlots(array[][], slot1, slot2) {
