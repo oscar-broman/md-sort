@@ -2,8 +2,12 @@
 //
 // SortDeepArray(array[][], sort_index, .order = SORT_ASC, .ignorecase = false)
 
-#include <a_samp>
+#if defined _INC_md_sort
+	#endinput
+#endif
+#define _INC_md_sort
 
+#include <a_samp>
 
 #define SA_4%9.%0, SA_4%0,
 
@@ -17,8 +21,8 @@
 #define SA_5:$$$
 
 #define SortDeepArray(%1) (_:SA_0:SA_1:SA_2:SA_3:SortDeepArray_Entry(%1)) 
-#define SA_0:SA_1:SA_2:SA_3:SortDeepArray_Entry(%1,%2,%3) SA_2:SA_3:SortDeepArray_Entry(%1[0][%2], _:%1[0][(%2) - (%2)], SA_4%3,_|||sizeof(%1),_,bool:SA_5:$$$false,_,_,g_sort_cmp_array,%1)
-#define SA_1:SA_2:SA_3:SortDeepArray_Entry(%1,%2) SA_2:SA_3:SortDeepArray_Entry(%1[0][%2], _:%1[0][(%2) - (%2)], sizeof(%1), _, _, _, _, g_sort_cmp_array, %1)
+#define SA_0:SA_1:SA_2:SA_3:SortDeepArray_Entry(%1,%2,%3) SA_2:SA_3:SortDeepArray_Entry(%1[0][%2], _:%1[0][(%2) - (%2)], SA_4%3,_|||sizeof(%1),_,bool:SA_5:$$$false,_,_,g_sort_cmp_array,_:%1)
+#define SA_1:SA_2:SA_3:SortDeepArray_Entry(%1,%2) SA_2:SA_3:SortDeepArray_Entry(%1[0][%2], _:%1[0][(%2) - (%2)], sizeof(%1), _, _, _, _, g_sort_cmp_array, _:%1)
 #define SA_2:SA_3:SortDeepArray_Entry(%3[0][%4string%5:%6],%7,%8$$$false%9) SortDeepArray_Entry(%3[0][%6], _:%3[0][(%6) - (%6)], %8$$$true%9)
 
 enum E_SORT_ORDER {
@@ -28,6 +32,7 @@ enum E_SORT_ORDER {
 
 // Use global variables to be nicer to the stack
 stock
+	             g_sort_stack[256],
 	             g_sort_cmp_array[1][1],
 	             g_sort_cmp_offset,
 	             g_sort_cmp_type,
@@ -38,7 +43,7 @@ stock
 stock SortDeepArray_Entry(&{Float, String, string, _}:cmp1, &_:cmp2, size, cmp_tag = tagof(cmp1), bool:cmp_string = false, bool:ignorecase = false, E_SORT_ORDER:order = SORT_ASC, array[][], ...) {
 	if (cmp_string)
 		g_sort_cmp_type = 's';
-	else if (cmp_tag == tagof(Float:))
+	else if (cmp_tag == (tagof (Float:)))
 		g_sort_cmp_type = 'f';
 	else
 		g_sort_cmp_type = 'i';
@@ -60,6 +65,10 @@ stock SortDeepArray_Entry(&{Float, String, string, _}:cmp1, &_:cmp2, size, cmp_t
 }
 
 stock _SortDeepArray(array[][], left, right) {
+	
+	new
+		sp;
+_SortDeepArray_recurse:
 	new
 		left_hold = left,
 		right_hold = right,
@@ -67,12 +76,18 @@ stock _SortDeepArray(array[][], left, right) {
 		pivot = array[pivot_idx][g_sort_cmp_offset]
 	;
 	
-	while (left_hold <= right_hold) {
+	if (g_sort_cmp_type == 'f' && Float:pivot != Float:pivot) {
+		// Pivot is NaN, put everything else before it - NaN ALWAYS goes at the
+		// end of the array, regardless of sort order.
+		left_hold = right;
+		right_hold = right - 1;
+		ExchangeArraySlots(array, pivot_idx, right);
+	} else while (left_hold <= right_hold) {
 		switch (g_sort_cmp_type) {
 			case 'f': {
 				if (g_sort_order == SORT_ASC) {
-					while (Float:array[left_hold][g_sort_cmp_offset] < Float:pivot) left_hold++;
-					while (Float:array[right_hold][g_sort_cmp_offset] > Float:pivot) right_hold--;
+					while (Float:pivot > Float:array[left_hold][g_sort_cmp_offset]) left_hold++;
+					while (Float:pivot < Float:array[right_hold][g_sort_cmp_offset]) right_hold--;
 				} else {
 					while (Float:array[left_hold][g_sort_cmp_offset] > Float:pivot) left_hold++;
 					while (Float:array[right_hold][g_sort_cmp_offset] < Float:pivot) right_hold--;
@@ -107,8 +122,19 @@ stock _SortDeepArray(array[][], left, right) {
 		}
 	}
 	
-	if (left < right_hold) _SortDeepArray(array, left, right_hold);
-	if (left_hold < right) _SortDeepArray(array, left_hold, right);
+	if (left_hold < right) {
+		g_sort_stack[sp++] = left_hold;
+		g_sort_stack[sp++] = right;
+	}
+	if (left < right_hold){
+		right = right_hold;
+		goto _SortDeepArray_recurse;
+	}
+	if (sp) {
+		right = g_sort_stack[--sp];
+		left = g_sort_stack[--sp];
+		goto _SortDeepArray_recurse;
+	}
 }
 
 stock ExchangeArraySlots(array[][], slot1, slot2) {
@@ -152,6 +178,73 @@ stock ExchangeArraySlots(array[][], slot1, slot2) {
 	#emit STOR.I
 	
 	return 0;
+}
+
+#define ShuffleDeepArray(%0) ShuffleDeepArray_Entry(_:%0, sizeof(%0), sizeof (%0[]))
+
+stock ShuffleDeepArray_Entry(...) {
+	assert(numargs() == 3);
+	new
+		i,
+		base,
+		size = getarg(1),
+		target;
+	#emit LOAD.S.alt 12
+	#emit STOR.S.alt base
+	#emit LOAD.S.pri size
+	#emit SHL.C.pri  2
+	#emit ADD
+	#emit STOR.S.pri i
+	while (i != base) {
+		i -= 4;
+		target = (random(size) << 2) + base;
+		// Get the first slot.
+		#emit LREF.S.pri i
+		#emit LOAD.S.alt i
+		#emit ADD
+		#emit PUSH.pri
+		// Get any other slot.
+		#emit LREF.S.pri target
+		#emit LOAD.S.alt target
+		#emit ADD
+		// Save one.
+		#emit LOAD.S.alt i
+		#emit SUB
+		#emit SREF.S.pri i
+		// Save the other
+		#emit POP.pri
+		#emit LOAD.S.alt target
+		#emit SUB
+		#emit SREF.S.pri target
+	}
+}
+
+#define ResetDeepArray(%0) ResetDeepArray_Entry(_:%0, sizeof(%0), sizeof (%0[]))
+
+stock ResetDeepArray_Entry(...) {
+	// Put all the slots back how they should be originally.
+	assert(numargs() == 3);
+	new
+		i,
+		base,
+		size = getarg(1),
+		target;
+	#emit LOAD.S.alt 12
+	#emit STOR.S.alt i
+	#emit LOAD.S.pri size
+	#emit SHL.C.pri  2
+	#emit ADD
+	#emit STOR.S.pri base
+	#emit STOR.S.pri target
+	size = getarg(2) << 2;
+	while (i != base) {
+		#emit LOAD.S.alt i
+		#emit LOAD.S.pri target
+		#emit SUB
+		#emit STOR.I
+		i += 4;
+		target += size;
+	}
 }
 
 #define SortArrayUsingComparator(%1,%2) \
@@ -203,7 +296,8 @@ stock SortArrayUsingComparator_Entry(size, ...) {
 		#emit PUSH.pri
 		#emit PUSH.C      4
 		#emit LCTRL       6
-		#emit ADD.C       28
+		#emit ADD.C       36
+		#emit LCTRL       8
 		#emit PUSH.pri
 		#emit CONST.pri   GetFunctionAddress
 		#emit SCTRL       6
@@ -222,6 +316,9 @@ stock SortArrayUsingComparator_Entry(size, ...) {
 }
 
 stock SortArrayUsingComparator_QS(array, func, left, right) {
+	new
+		sp;
+_SortDeepArray_recurse:
 	new
 		left_hold = left,
 		right_hold = right,
@@ -254,7 +351,8 @@ stock SortArrayUsingComparator_QS(array, func, left, right) {
 			
 			#emit PUSH.C      8
 			#emit LCTRL       6
-			#emit ADD.C       28
+			#emit ADD.C       36
+			#emit LCTRL       8
 			#emit PUSH.pri
 			#emit LOAD.S.pri  func
 			#emit SCTRL       6
@@ -290,7 +388,8 @@ stock SortArrayUsingComparator_QS(array, func, left, right) {
 			
 			#emit PUSH.C      8
 			#emit LCTRL       6
-			#emit ADD.C       28
+			#emit ADD.C       36
+			#emit LCTRL       8
 			#emit PUSH.pri
 			#emit LOAD.S.pri  func
 			#emit SCTRL       6
@@ -309,7 +408,8 @@ stock SortArrayUsingComparator_QS(array, func, left, right) {
 			#emit PUSH.S      array
 			#emit PUSH.C      12
 			#emit LCTRL       6
-			#emit ADD.C       28
+			#emit ADD.C       36
+			#emit LCTRL       8
 			#emit PUSH.pri
 			#emit CONST.pri   ExchangeArraySlots
 			#emit SCTRL       6
@@ -318,8 +418,19 @@ stock SortArrayUsingComparator_QS(array, func, left, right) {
 		}
 	}
 	
-	if (left < right_hold) SortArrayUsingComparator_QS(array, func, left, right_hold);
-	if (left_hold < right) SortArrayUsingComparator_QS(array, func, left_hold, right);
+	if (left_hold < right) {
+		g_sort_stack[sp++] = left_hold;
+		g_sort_stack[sp++] = right;
+	}
+	if (left < right_hold){
+		right = right_hold;
+		goto _SortDeepArray_recurse;
+	}
+	if (sp) {
+		right = g_sort_stack[--sp];
+		left = g_sort_stack[--sp];
+		goto _SortDeepArray_recurse;
+	}
 }
 
 #define SortArrayUsingComparator_Entry(%1)%2=>%3; \
@@ -347,7 +458,8 @@ stock SortArrayUsingCompInto_Entry(results[], size, ...) {
 		#emit PUSH.pri
 		#emit PUSH.C      4
 		#emit LCTRL       6
-		#emit ADD.C       28
+		#emit ADD.C       36
+		#emit LCTRL       8
 		#emit PUSH.pri
 		#emit CONST.pri   GetFunctionAddress
 		#emit SCTRL       6
@@ -394,6 +506,9 @@ stock SortArrayUsingCompInto_Entry(results[], size, ...) {
 }
 
 stock SortArrayUsingCompInto_QS(array, results[], func, left, right) {
+	new
+		sp;
+_SortDeepArray_recurse:
 	new
 		left_hold = left,
 		right_hold = right,
@@ -451,7 +566,8 @@ stock SortArrayUsingCompInto_QS(array, results[], func, left, right) {
 				#emit PUSH.C      8
 				// Push return address
 				#emit LCTRL       6
-				#emit ADD.C       28
+				#emit ADD.C       36
+				#emit LCTRL       8
 				#emit PUSH.pri
 				// Call the comparator
 				#emit LOAD.S.pri  func
@@ -515,7 +631,8 @@ stock SortArrayUsingCompInto_QS(array, results[], func, left, right) {
 				#emit PUSH.C      8
 				// Push return address
 				#emit LCTRL       6
-				#emit ADD.C       28
+				#emit ADD.C       36
+				#emit LCTRL       8
 				#emit PUSH.pri
 				// Call the comparator
 				#emit LOAD.S.pri  func
@@ -542,7 +659,18 @@ stock SortArrayUsingCompInto_QS(array, results[], func, left, right) {
 		}
 	}
 	
-	if (left < right_hold) SortArrayUsingCompInto_QS(array, results, func, left, right_hold);
-	if (left_hold < right) SortArrayUsingCompInto_QS(array, results, func, left_hold, right);
+	if (left_hold < right) {
+		g_sort_stack[sp++] = left_hold;
+		g_sort_stack[sp++] = right;
+	}
+	if (left < right_hold){
+		right = right_hold;
+		goto _SortDeepArray_recurse;
+	}
+	if (sp) {
+		right = g_sort_stack[--sp];
+		left = g_sort_stack[--sp];
+		goto _SortDeepArray_recurse;
+	}
 }
 
