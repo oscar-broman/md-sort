@@ -40,10 +40,17 @@ stock
 	        bool:g_sort_ignorecase
 ;
 
+#if !defined FLOAT_TAG
+	stock const
+		Float:FLOAT_TAG_;
+	
+	#define FLOAT_TAG (tagof (FLOAT_TAG_))
+#endif
+
 stock SortDeepArray_Entry(&{Float, String, string, _}:cmp1, &_:cmp2, size, cmp_tag = tagof(cmp1), bool:cmp_string = false, bool:ignorecase = false, E_SORT_ORDER:order = SORT_ASC, array[][], ...) {
 	if (cmp_string)
 		g_sort_cmp_type = 's';
-	else if (cmp_tag == (tagof (Float:)))
+	else if (cmp_tag == FLOAT_TAG)
 		g_sort_cmp_type = 'f';
 	else
 		g_sort_cmp_type = 'i';
