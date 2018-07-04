@@ -1,0 +1,10 @@
+{
+    "user": "oscar-broman",
+    "repo": "md-sort",
+    "entry": "test.pwn",
+    "output": "test.amx",
+    "dependencies": [
+        "sampctl/samp-stdlib",
+        "sampctl/pawn-stdlib",
+    ]
+}
