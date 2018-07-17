@@ -5,6 +5,6 @@
     "output": "test.amx",
     "dependencies": [
         "sampctl/samp-stdlib",
-        "sampctl/pawn-stdlib",
+        "sampctl/pawn-stdlib"
     ]
 }
