@@ -259,6 +259,8 @@ stock ResetDeepArray_Entry(...) {
 
 #define Comparator:%1(%2) \
 	forward %1(%2); public %1(%2)
+	
+#define @comparator%0(%1)%2(%3) Comparator:%2(%1)
 
 enum e_COMPARE_ORDER {
 	ORDER_ASCENDING = -1,
