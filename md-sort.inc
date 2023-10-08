@@ -59,15 +59,25 @@ stock SortDeepArray_Entry(&{Float, String, string, _}:cmp1, &_:cmp2, size, cmp_t
 	g_sort_ignorecase = ignorecase;
 	g_sort_order = order;
 	
+	#if cellbits == 32
+		const c_sdaShift = 2;
+		const c_sdaLoad = 12 * 4;
+		const c_sdaStore = 11 * 4;
+	#else
+		const c_sdaShift = 3;
+		const c_sdaLoad = 12 * 8;
+		const c_sdaStore = 11 * 8;
+	#endif
+	
 	#emit LOAD.S.pri  cmp1
 	#emit LOAD.S.alt  cmp2
 	#emit SUB
-	#emit SHR.C.pri   2
+	#emit SHR.C.pri   c_sdaShift
 	#emit STOR.pri    g_sort_cmp_offset
 	
 	// Copy the array.
-	#emit LOAD.S.pri 48
-	#emit STOR.S.pri 44
+	#emit LOAD.S.pri c_sdaLoad
+	#emit STOR.S.pri c_sdaStore
 	
 	_SortDeepArray(array, 0, size - 1, limit);
 }
@@ -211,10 +221,16 @@ stock ExchangeArraySlots(array[][], slot1, slot2) {
 		addr1,
 		addr2;
 	
+	#if cellbits == 32
+		const c_sdaShift = 2;
+	#else
+		const c_sdaShift = 3;
+	#endif
+	
 	// Get the pointer and its address  for slot1
 	#emit LOAD.S.pri  array
 	#emit LOAD.S.alt  slot1
-	#emit SHL.C.alt   2
+	#emit SHL.C.alt   c_sdaShift
 	#emit ADD
 	#emit MOVE.alt
 	
@@ -226,7 +242,7 @@ stock ExchangeArraySlots(array[][], slot1, slot2) {
 	// Get the pointer and its address for slot2
 	#emit LOAD.S.pri  array
 	#emit LOAD.S.alt  slot2
-	#emit SHL.C.alt   2
+	#emit SHL.C.alt   c_sdaShift
 	#emit ADD
 	#emit MOVE.alt
 	
@@ -258,15 +274,26 @@ stock ShuffleDeepArray_Entry(...) {
 		base,
 		size = getarg(1),
 		target;
-	#emit LOAD.S.alt 12
+	
+	#if cellbits == 32
+		const c_sdaShift = 2;
+		const c_sdaLoad = 3 * 4;
+		const c_sdaSub = 4;
+	#else
+		const c_sdaShift = 3;
+		const c_sdaLoad = 3 * 8;
+		const c_sdaSub = 8;
+	#endif
+	
+	#emit LOAD.S.alt c_sdaLoad
 	#emit STOR.S.alt base
 	#emit LOAD.S.pri size
-	#emit SHL.C.pri  2
+	#emit SHL.C.pri  c_sdaShift
 	#emit ADD
 	#emit STOR.S.pri i
 	while (i != base) {
-		i -= 4;
-		target = (random(size) << 2) + base;
+		i -= c_sdaSub;
+		target = (random(size) << c_sdaShift) + base;
 		// Get the first slot.
 		#emit LREF.S.pri i
 		#emit LOAD.S.alt i
@@ -298,20 +325,31 @@ stock ResetDeepArray_Entry(...) {
 		base,
 		size = getarg(1),
 		target;
-	#emit LOAD.S.alt 12
+	
+	#if cellbits == 32
+		const c_sdaShift = 2;
+		const c_sdaLoad = 3 * 4;
+		const c_sdaAdd = 4;
+	#else
+		const c_sdaShift = 3;
+		const c_sdaLoad = 3 * 8;
+		const c_sdaAdd = 8;
+	#endif
+	
+	#emit LOAD.S.alt c_sdaLoad
 	#emit STOR.S.alt i
 	#emit LOAD.S.pri size
-	#emit SHL.C.pri  2
+	#emit SHL.C.pri  c_sdaShift
 	#emit ADD
 	#emit STOR.S.pri base
 	#emit STOR.S.pri target
-	size = getarg(2) << 2;
+	size = getarg(2) << c_sdaShift;
 	while (i != base) {
 		#emit LOAD.S.alt i
 		#emit LOAD.S.pri target
 		#emit SUB
 		#emit STOR.I
-		i += 4;
+		i += c_sdaAdd;
 		target += size;
 	}
 }
@@ -331,16 +369,25 @@ enum e_COMPARE_ORDER {
 static stock GetFunctionAddress(const funcname[]) {
 	new idx, address;
 	
+	#if cellbits == 32
+		const c_sdaMul = 8;
+		const c_sdaAdd = 8 * 4;
+	#else
+		const c_sdaMul = 12;
+		const c_sdaAdd = 8 * 8;
+	#endif
+	
 	if (-1 != (idx = funcidx(funcname))) {
 		#emit LCTRL		   1
 		#emit NEG
 		#emit MOVE.alt
-		#emit ADD.C		   32
+		#emit ADD.C		   c_sdaAdd
 		#emit STOR.S.pri   address
 		#emit LREF.S.pri   address
 		#emit ADD
 		#emit LOAD.S.alt   idx
-		#emit SHL.C.alt	   3
+		#emit XCHG
+		#emit SMUL.C	   c_sdaMul
 		#emit ADD
 		#emit STOR.S.pri   address
 		#emit LREF.S.pri   address
@@ -353,24 +400,36 @@ static stock GetFunctionAddress(const funcname[]) {
 stock SortArrayUsingComparator_Entry(size, ...) {
 	new array, func;
 	
-	#emit LOAD.S.pri  16
+	#if cellbits == 32
+		const c_sdaOffset = 9 * 4;
+		const c_sdaLoad = 4 * 4;
+		const c_sdaStore = 5 * 4;
+		const c_sda1Cell = 4;
+	#else
+		const c_sdaOffset = 9 * 8;
+		const c_sdaLoad = 4 * 8;
+		const c_sdaStore = 5 * 8;
+		const c_sda1Cell = 8;
+	#endif
+	
+	#emit LOAD.S.pri  c_sdaLoad
 	#emit STOR.S.pri  array
-	#emit LOAD.S.pri  20
+	#emit LOAD.S.pri  c_sdaStore
 	#emit LOAD.I
 	#emit STOR.S.pri  func
 	
 	if (!func) {
-		#emit LOAD.S.pri  20
-		#emit ADD.C       4
+		#emit LOAD.S.pri  c_sdaStore
+		#emit ADD.C       c_sda1Cell
 		#emit PUSH.pri
-		#emit PUSH.C      4
+		#emit PUSH.C      c_sda1Cell
 		#emit LCTRL       6
-		#emit ADD.C       36
+		#emit ADD.C       c_sdaOffset
 		#emit LCTRL       8
 		#emit PUSH.pri
 		#emit CONST.pri   GetFunctionAddress
 		#emit SCTRL       6
-		#emit LOAD.S.alt  20
+		#emit LOAD.S.alt  c_sdaStore
 		#emit STOR.I
 		#emit STOR.S.pri  func
 	}
@@ -394,13 +453,25 @@ _SortDeepArray_recurse:
 		pivot = left
 	;
 	
+	#if cellbits == 32
+		const c_sdaShift = 2;
+		const c_sdaOffset = 9 * 4;
+		const c_sda2Cells = 2 * 8;
+		const c_sda3Cells = 3 * 8;
+	#else
+		const c_sdaShift = 3;
+		const c_sdaOffset = 9 * 8;
+		const c_sda2Cells = 2 * 8;
+		const c_sda3Cells = 3 * 8;
+	#endif
+	
 	while (left_hold <= right_hold) {
 		new result;
 		
 		for (;;) {
 			#emit LOAD.S.pri  array
 			#emit LOAD.S.alt  pivot
-			#emit SHL.C.alt   2
+			#emit SHL.C.alt   c_sdaShift
 			#emit ADD
 			#emit PUSH.pri
 			#emit LOAD.I
@@ -410,7 +481,7 @@ _SortDeepArray_recurse:
 			
 			#emit LOAD.S.pri  array
 			#emit LOAD.S.alt  left_hold
-			#emit SHL.C.alt   2
+			#emit SHL.C.alt   c_sdaShift
 			#emit ADD
 			#emit PUSH.pri
 			#emit LOAD.I
@@ -418,9 +489,9 @@ _SortDeepArray_recurse:
 			#emit ADD
 			#emit PUSH.pri
 			
-			#emit PUSH.C      8
+			#emit PUSH.C      c_sda2Cells
 			#emit LCTRL       6
-			#emit ADD.C       36
+			#emit ADD.C       c_sdaOffset
 			#emit LCTRL       8
 			#emit PUSH.pri
 			#emit LOAD.S.pri  func
@@ -437,7 +508,7 @@ _SortDeepArray_recurse:
 		for (;;) {
 			#emit LOAD.S.pri  array
 			#emit LOAD.S.alt  pivot
-			#emit SHL.C.alt   2
+			#emit SHL.C.alt   c_sdaShift
 			#emit ADD
 			#emit PUSH.pri
 			#emit LOAD.I
@@ -447,7 +518,7 @@ _SortDeepArray_recurse:
 			
 			#emit LOAD.S.pri  array
 			#emit LOAD.S.alt  right_hold
-			#emit SHL.C.alt   2
+			#emit SHL.C.alt   c_sdaShift
 			#emit ADD
 			#emit PUSH.pri
 			#emit LOAD.I
@@ -455,9 +526,9 @@ _SortDeepArray_recurse:
 			#emit ADD
 			#emit PUSH.pri
 			
-			#emit PUSH.C      8
+			#emit PUSH.C      c_sda2Cells
 			#emit LCTRL       6
-			#emit ADD.C       36
+			#emit ADD.C       c_sdaOffset
 			#emit LCTRL       8
 			#emit PUSH.pri
 			#emit LOAD.S.pri  func
@@ -475,9 +546,9 @@ _SortDeepArray_recurse:
 			#emit PUSH.S      right_hold
 			#emit PUSH.S      left_hold
 			#emit PUSH.S      array
-			#emit PUSH.C      12
+			#emit PUSH.C      c_sda3Cells
 			#emit LCTRL       6
-			#emit ADD.C       36
+			#emit ADD.C       c_sdaOffset
 			#emit LCTRL       8
 			#emit PUSH.pri
 			#emit CONST.pri   ExchangeArraySlots
@@ -512,9 +583,21 @@ enum (<<= 1) {
 stock SortArrayUsingCompInto_Entry(results[], size, ...) {
 	new array, func, flags;
 	
-	#emit LOAD.S.pri  20
+	#if cellbits == 32
+		const c_sdaOffset = 9 * 4;
+		const c_sdaLoad = 5 * 4;
+		const c_sdaStore = 6 * 4;
+		const c_sda1Cell = 4;
+	#else
+		const c_sdaOffset = 9 * 8;
+		const c_sdaLoad = 5 * 8;
+		const c_sdaStore = 6 * 8;
+		const c_sda1Cell = 8;
+	#endif
+	
+	#emit LOAD.S.pri  c_sdaLoad
 	#emit STOR.S.pri  array
-	#emit LOAD.S.pri  24
+	#emit LOAD.S.pri  c_sdaStore
 	#emit LOAD.I
 	#emit STOR.S.pri  func
 	
@@ -522,17 +605,17 @@ stock SortArrayUsingCompInto_Entry(results[], size, ...) {
 		flags = getarg(4);
 	
 	if (!func) {
-		#emit LOAD.S.pri  24
-		#emit ADD.C       4
+		#emit LOAD.S.pri  c_sdaStore
+		#emit ADD.C       c_sda1Cell
 		#emit PUSH.pri
-		#emit PUSH.C      4
+		#emit PUSH.C      c_sda1Cell
 		#emit LCTRL       6
-		#emit ADD.C       36
+		#emit ADD.C       c_sdaOffset
 		#emit LCTRL       8
 		#emit PUSH.pri
 		#emit CONST.pri   GetFunctionAddress
 		#emit SCTRL       6
-		#emit LOAD.S.alt  24
+		#emit LOAD.S.alt  c_sdaStore
 		#emit STOR.I
 		#emit STOR.S.pri  func
 	}
@@ -584,6 +667,16 @@ _SortDeepArray_recurse:
 		pivot = left
 	;
 	
+	#if cellbits == 32
+		const c_sdaShift = 2;
+		const c_sdaOffset = 9 * 4;
+		const c_sda2Cells = 2 * 4;
+	#else
+		const c_sdaShift = 3;
+		const c_sdaOffset = 9 * 8;
+		const c_sda2Cells = 2 * 8;
+	#endif
+	
 	while (left_hold <= right_hold) {
 		new result;
 		
@@ -597,7 +690,7 @@ _SortDeepArray_recurse:
 			} else {
 				// Load results[pivot]
 				#emit LOAD.S.pri  pivot
-				#emit SHL.C.pri   2  
+				#emit SHL.C.pri   c_sdaShift
 				#emit LOAD.S.alt  results
 				#emit ADD
 				#emit LOAD.I
@@ -605,7 +698,7 @@ _SortDeepArray_recurse:
 				
 				// Push array[results[pivot]]
 				#emit LOAD.S.pri  array
-				#emit SHL.C.alt   2
+				#emit SHL.C.alt   c_sdaShift
 				#emit ADD
 				#emit PUSH.pri
 				#emit LOAD.I
@@ -615,7 +708,7 @@ _SortDeepArray_recurse:
 				
 				// Load results[left_hold]
 				#emit LOAD.S.pri  left_hold
-				#emit SHL.C.pri   2  
+				#emit SHL.C.pri   c_sdaShift
 				#emit LOAD.S.alt  results
 				#emit ADD
 				#emit LOAD.I
@@ -623,7 +716,7 @@ _SortDeepArray_recurse:
 				
 				// Push array[results[left_hold]]
 				#emit LOAD.S.pri  array
-				#emit SHL.C.alt   2
+				#emit SHL.C.alt   c_sdaShift
 				#emit ADD
 				#emit PUSH.pri
 				#emit LOAD.I
@@ -632,10 +725,10 @@ _SortDeepArray_recurse:
 				#emit PUSH.pri
 				
 				// Push arg. count
-				#emit PUSH.C      8
+				#emit PUSH.C      c_sda2Cells
 				// Push return address
 				#emit LCTRL       6
-				#emit ADD.C       36
+				#emit ADD.C       c_sdaOffset
 				#emit LCTRL       8
 				#emit PUSH.pri
 				// Call the comparator
@@ -662,7 +755,7 @@ _SortDeepArray_recurse:
 			} else {
 				// Load results[pivot]
 				#emit LOAD.S.pri  pivot
-				#emit SHL.C.pri   2  
+				#emit SHL.C.pri   c_sdaShift
 				#emit LOAD.S.alt  results
 				#emit ADD
 				#emit LOAD.I
@@ -670,7 +763,7 @@ _SortDeepArray_recurse:
 				
 				// Push array[results[pivot]]
 				#emit LOAD.S.pri  array
-				#emit SHL.C.alt   2
+				#emit SHL.C.alt   c_sdaShift
 				#emit ADD
 				#emit PUSH.pri
 				#emit LOAD.I
@@ -680,7 +773,7 @@ _SortDeepArray_recurse:
 			
 				// Load results[right_hold]
 				#emit LOAD.S.pri  right_hold
-				#emit SHL.C.pri   2  
+				#emit SHL.C.pri   c_sdaShift
 				#emit LOAD.S.alt  results
 				#emit ADD
 				#emit LOAD.I
@@ -688,7 +781,7 @@ _SortDeepArray_recurse:
 			
 				// Push array[results[right_hold]]
 				#emit LOAD.S.pri  array
-				#emit SHL.C.alt   2
+				#emit SHL.C.alt   c_sdaShift
 				#emit ADD
 				#emit PUSH.pri
 				#emit LOAD.I
@@ -697,10 +790,10 @@ _SortDeepArray_recurse:
 				#emit PUSH.pri
 			
 				// Push arg. count
-				#emit PUSH.C      8
+				#emit PUSH.C      c_sda2Cells
 				// Push return address
 				#emit LCTRL       6
-				#emit ADD.C       36
+				#emit ADD.C       c_sdaOffset
 				#emit LCTRL       8
 				#emit PUSH.pri
 				// Call the comparator
