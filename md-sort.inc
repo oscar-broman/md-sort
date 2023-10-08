@@ -11,18 +11,19 @@
 
 #define SA_4%9.%0, SA_4%0,
 
-#define SA_4size=%0,%9|||%5,%1,%2,%3,%4,%7)       SA_4%9|||%0,%1,%2,%3,%4,%7)
-#define SA_4cmp_tag=%0,%9|||%5,%1,%2,%3,%4,%7)    SA_4%9|||%5,%0,%2,%3,%4,%7)
-#define SA_4cmp_string=%0,%9|||%5,%1,%2,%3,%4,%7) SA_4%9|||%5,%1,%0,%3,%4,%7)
-#define SA_4ignorecase=%0,%9|||%5,%1,%2,%3,%4,%7) SA_4%9|||%5,%1,%2,%0,%4,%7)
-#define SA_4order=%0,%9|||%5,%1,%2,%3,%4,%7)      SA_4%9|||%5,%1,%2,%3,%0,%7)
+#define SA_4size=%0,%9|||%5,%1,%2,%3,%4,%6,%7)       SA_4%9|||%0,%1,%2,%3,%4,%6,%7)
+#define SA_4cmp_tag=%0,%9|||%5,%1,%2,%3,%4,%6,%7)    SA_4%9|||%5,%0,%2,%3,%4,%6,%7)
+#define SA_4cmp_string=%0,%9|||%5,%1,%2,%3,%4,%6,%7) SA_4%9|||%5,%1,%0,%3,%4,%6,%7)
+#define SA_4ignorecase=%0,%9|||%5,%1,%2,%3,%4,%6,%7) SA_4%9|||%5,%1,%2,%0,%4,%6,%7)
+#define SA_4order=%0,%9|||%5,%1,%2,%3,%4,%6,%7)      SA_4%9|||%5,%1,%2,%3,%0,%6,%7)
+#define SA_4limit=%0,%9|||%5,%1,%2,%3,%4,%6,%7)      SA_4%9|||%5,%1,%2,%3,%4,%0,%7)
 
 #define SA_4_|||
 #define SA_5:$$$
 
 #define SortDeepArray(%1) (_:SA_0:SA_1:SA_2:SA_3:SortDeepArray_Entry(%1)) 
-#define SA_0:SA_1:SA_2:SA_3:SortDeepArray_Entry(%1,%2,%3) SA_2:SA_3:SortDeepArray_Entry(%1[0][%2], _:%1[0][(%2) - (%2)], SA_4%3,_|||sizeof(%1),_,bool:SA_5:$$$false,_,_,g_sort_cmp_array,_:%1)
-#define SA_1:SA_2:SA_3:SortDeepArray_Entry(%1,%2) SA_2:SA_3:SortDeepArray_Entry(%1[0][%2], _:%1[0][(%2) - (%2)], sizeof(%1), _, _, _, _, g_sort_cmp_array, _:%1)
+#define SA_0:SA_1:SA_2:SA_3:SortDeepArray_Entry(%1,%2,%3) SA_2:SA_3:SortDeepArray_Entry(%1[0][%2], _:%1[0][(%2) - (%2)], SA_4%3,_|||sizeof(%1),_,bool:SA_5:$$$false,_,_,_,g_sort_cmp_array,_:%1)
+#define SA_1:SA_2:SA_3:SortDeepArray_Entry(%1,%2) SA_2:SA_3:SortDeepArray_Entry(%1[0][%2], _:%1[0][(%2) - (%2)], sizeof(%1), _, _, _, _, _, g_sort_cmp_array, _:%1)
 #define SA_2:SA_3:SortDeepArray_Entry(%3[0][%4string%5:%6],%7,%8$$$false%9) SortDeepArray_Entry(%3[0][%6], _:%3[0][(%6) - (%6)], %8$$$true%9)
 
 enum E_SORT_ORDER {
@@ -47,7 +48,7 @@ stock
 	#define FLOAT_TAG (tagof (FLOAT_TAG_))
 #endif
 
-stock SortDeepArray_Entry(&{Float, String, string, _}:cmp1, &_:cmp2, size, cmp_tag = tagof(cmp1), bool:cmp_string = false, bool:ignorecase = false, E_SORT_ORDER:order = SORT_ASC, array[][], ...) {
+stock SortDeepArray_Entry(&{Float, String, string, _}:cmp1, &_:cmp2, size, cmp_tag = tagof(cmp1), bool:cmp_string = false, bool:ignorecase = false, E_SORT_ORDER:order = SORT_ASC, limit = cellmax, array[][], ...) {
 	if (cmp_string)
 		g_sort_cmp_type = 's';
 	else if (cmp_tag == FLOAT_TAG)
@@ -65,78 +66,139 @@ stock SortDeepArray_Entry(&{Float, String, string, _}:cmp1, &_:cmp2, size, cmp_t
 	#emit STOR.pri    g_sort_cmp_offset
 	
 	// Copy the array.
-	#emit LOAD.S.pri 44
-	#emit STOR.S.pri 40
+	#emit LOAD.S.pri 48
+	#emit STOR.S.pri 44
 	
-	_SortDeepArray(array, 0, size - 1);
+	_SortDeepArray(array, 0, size - 1, limit);
 }
 
-stock _SortDeepArray(array[][], left, right) {
+stock _SortDeepArray(array[][], left, right, limit) {
 	
 	new
 		sp;
 _SortDeepArray_recurse:
+	
 	new
-		left_hold = left,
-		right_hold = right,
-		pivot_idx = (left + right) / 2,
-		pivot = array[pivot_idx][g_sort_cmp_offset]
+		pivot_idx = (left + right) / 2
 	;
 	
-	if (g_sort_cmp_type == 'f' && Float:pivot != Float:pivot) {
-		// Pivot is NaN, put everything else before it - NaN ALWAYS goes at the
-		// end of the array, regardless of sort order.
-		left_hold = right;
-		right_hold = right - 1;
-		ExchangeArraySlots(array, pivot_idx, right);
-	} else while (left_hold <= right_hold) {
-		switch (g_sort_cmp_type) {
-			case 'f': {
-				if (g_sort_order == SORT_ASC) {
-					while (Float:pivot > Float:array[left_hold][g_sort_cmp_offset]) left_hold++;
-					while (Float:pivot < Float:array[right_hold][g_sort_cmp_offset]) right_hold--;
-				} else {
-					while (Float:array[left_hold][g_sort_cmp_offset] > Float:pivot) left_hold++;
-					while (Float:array[right_hold][g_sort_cmp_offset] < Float:pivot) right_hold--;
+	switch (right - left) {
+		case 0: {
+			// Single element.  No sorting required.
+			limit -= 1;
+			if (limit <= 0) return;
+		}
+		case 1: {
+			// Two elements, can just swap them.
+			switch (g_sort_cmp_type) {
+				case 'f': {
+					// Special case for floats - NAN is always last.  If `right`
+					// is `NAN`, then all the checks will fail and it will
+					// remain after `left`.  If both `left` and `right` are
+					// `NAN` then they will be swapped, but quicksort is not a
+					// stable algorithm so that's fine.
+					if (Float:array[left][g_sort_cmp_offset] != Float:array[left][g_sort_cmp_offset]) ExchangeArraySlots(array, left, right);
+					else if (g_sort_order == SORT_ASC) {
+						if (Float:array[left][g_sort_cmp_offset] > Float:array[right][g_sort_cmp_offset]) ExchangeArraySlots(array, left, right);
+					} else {
+						if (Float:array[left][g_sort_cmp_offset] < Float:array[right][g_sort_cmp_offset]) ExchangeArraySlots(array, left, right);
+					}
+				}
+				
+				case 's': {
+					if (g_sort_order == SORT_ASC) {
+						if (strcmp(array[left][g_sort_cmp_offset], array[right][g_sort_cmp_offset], g_sort_ignorecase) > 0) ExchangeArraySlots(array, left, right);
+					} else {
+						if (strcmp(array[left][g_sort_cmp_offset], array[right][g_sort_cmp_offset], g_sort_ignorecase) < 0) ExchangeArraySlots(array, left, right);
+					}
+				}
+				
+				default: {
+					if (g_sort_order == SORT_ASC) {
+						if (array[left][g_sort_cmp_offset] > array[right][g_sort_cmp_offset]) ExchangeArraySlots(array, left, right);
+					} else {
+						if (array[left][g_sort_cmp_offset] < array[right][g_sort_cmp_offset]) ExchangeArraySlots(array, left, right);
+					}
 				}
 			}
-			
-			case 's': {
-				if (g_sort_order == SORT_ASC) {
-					while (strcmp(array[left_hold][g_sort_cmp_offset], array[pivot_idx][g_sort_cmp_offset], g_sort_ignorecase) < 0) left_hold++;
-					while (strcmp(array[right_hold][g_sort_cmp_offset], array[pivot_idx][g_sort_cmp_offset], g_sort_ignorecase) > 0) right_hold--;
-				} else {
-					while (strcmp(array[left_hold][g_sort_cmp_offset], array[pivot_idx][g_sort_cmp_offset], g_sort_ignorecase) > 0) left_hold++;
-					while (strcmp(array[right_hold][g_sort_cmp_offset], array[pivot_idx][g_sort_cmp_offset], g_sort_ignorecase) < 0) right_hold--;
-				}
-			}
-			
-			default: {
-				if (g_sort_order == SORT_ASC) {
-					while (array[left_hold][g_sort_cmp_offset] < pivot) left_hold++;
-					while (array[right_hold][g_sort_cmp_offset] > pivot) right_hold--;
-				} else {
-					while (array[left_hold][g_sort_cmp_offset] > pivot) left_hold++;
-					while (array[right_hold][g_sort_cmp_offset] < pivot) right_hold--;
-				}
-			}
+			limit -= 2;
+			if (limit <= 0) return;
 		}
 		
-		if (left_hold <= right_hold) {
-			ExchangeArraySlots(array, left_hold, right_hold);
+		// If we wanted to special-case three values:
+		//if (a < b)
+		//	if (c < a) // c a b
+		//	else if (b < c) // a b c
+		//	else // a c b
+		//else
+		//	if (c < b) // c b a
+		//	else if (a < c) // b a c
+		//	else // b c a
+		
+		default: {
+			new
+				left_hold = left,
+				right_hold = right,
+				pivot = array[pivot_idx][g_sort_cmp_offset]
+			;
 			
-			left_hold++, right_hold--;
+			if (g_sort_cmp_type == 'f' && Float:pivot != Float:pivot) {
+				// Pivot is NaN, put everything else before it - NaN ALWAYS goes at the
+				// end of the array, regardless of sort order.
+				left_hold = right;
+				right_hold = right - 1;
+				ExchangeArraySlots(array, pivot_idx, right);
+			} else while (left_hold <= right_hold) {
+				switch (g_sort_cmp_type) {
+					case 'f': {
+						if (g_sort_order == SORT_ASC) {
+							while (Float:pivot > Float:array[left_hold][g_sort_cmp_offset]) left_hold++;
+							while (Float:pivot < Float:array[right_hold][g_sort_cmp_offset]) right_hold--;
+						} else {
+							while (Float:array[left_hold][g_sort_cmp_offset] > Float:pivot) left_hold++;
+							while (Float:array[right_hold][g_sort_cmp_offset] < Float:pivot) right_hold--;
+						}
+					}
+					
+					case 's': {
+						if (g_sort_order == SORT_ASC) {
+							while (strcmp(array[left_hold][g_sort_cmp_offset], array[pivot_idx][g_sort_cmp_offset], g_sort_ignorecase) < 0) left_hold++;
+							while (strcmp(array[right_hold][g_sort_cmp_offset], array[pivot_idx][g_sort_cmp_offset], g_sort_ignorecase) > 0) right_hold--;
+						} else {
+							while (strcmp(array[left_hold][g_sort_cmp_offset], array[pivot_idx][g_sort_cmp_offset], g_sort_ignorecase) > 0) left_hold++;
+							while (strcmp(array[right_hold][g_sort_cmp_offset], array[pivot_idx][g_sort_cmp_offset], g_sort_ignorecase) < 0) right_hold--;
+						}
+					}
+					
+					default: {
+						if (g_sort_order == SORT_ASC) {
+							while (array[left_hold][g_sort_cmp_offset] < pivot) left_hold++;
+							while (array[right_hold][g_sort_cmp_offset] > pivot) right_hold--;
+						} else {
+							while (array[left_hold][g_sort_cmp_offset] > pivot) left_hold++;
+							while (array[right_hold][g_sort_cmp_offset] < pivot) right_hold--;
+						}
+					}
+				}
+				
+				if (left_hold <= right_hold) {
+					ExchangeArraySlots(array, left_hold, right_hold);
+					
+					left_hold++, right_hold--;
+				}
+			}
+			
+			if (left_hold < right) {
+				g_sort_stack[sp++] = left_hold;
+				g_sort_stack[sp++] = right;
+			}
+			if (left < right_hold){
+				right = right_hold;
+				goto _SortDeepArray_recurse;
+			}
 		}
 	}
 	
-	if (left_hold < right) {
-		g_sort_stack[sp++] = left_hold;
-		g_sort_stack[sp++] = right;
-	}
-	if (left < right_hold){
-		right = right_hold;
-		goto _SortDeepArray_recurse;
-	}
 	if (sp) {
 		right = g_sort_stack[--sp];
 		left = g_sort_stack[--sp];

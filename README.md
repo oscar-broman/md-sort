@@ -138,7 +138,7 @@ main()
 
 ## Other Examples
 
-## Shuffling And Resetting An Array
+### Shuffling And Resetting An Array
 
 ```pawn
 enum ENUM_TWO_DIRECTIONS
@@ -214,4 +214,29 @@ main()
 	}
 }
 ```
+
+### Getting the top five players.
+
+
+```pawn
+enum E_PLAYER_SCORES
+{
+	E_PLAYER_ID,
+	E_PLAYER_SCORE
+}
+new gPlayerScores[MAX_PLAYERS][E_PLAYER_SCORES];
+
+SortDeepArray(array, E_PLAYER_SCORE, .limit = 5);
+
+printf("The best five players are:");
+printf("  1) %d", gPlayerScores[0][E_PLAYER_ID]);
+printf("  2) %d", gPlayerScores[1][E_PLAYER_ID]);
+printf("  3) %d", gPlayerScores[2][E_PLAYER_ID]);
+printf("  4) %d", gPlayerScores[3][E_PLAYER_ID]);
+printf("  5) %d", gPlayerScores[4][E_PLAYER_ID]);
+```
+
+Because we only need the first five players, the `.limit` parameter only partially sorts the array.  It is guaranteed to be sorted up to the "limit"th index, but not beyond that.  This saves a lot of time when you just don't care who came 738th.
+
+This also demonstrates the fact that the actual array itself is moved about, which means you need to store the player's ID as well, you can't just rely on the slot index.
 
